@@ -4,9 +4,17 @@ project(gorillas C)
 set(CMAKE_C_STANDARD 11)
 set(CMAKE_BUILD_TYPE Debug)
 
-find_package(Curses REQUIRED)
-include_directories(${CURSES_INCLUDE_DIR})
+# Find SDL2
+find_package(SDL2 REQUIRED)
+include_directories(${SDL2_INCLUDE_DIRS})
 
-add_executable(gorillas src/main.c)
+# Collect all source files
+file(GLOB SOURCES "src/*.c")
+add_executable(gorillas ${SOURCES})
 
-target_link_libraries(gorillas ncursesw)
+# Link SDL2 and SDL2_ttf manually
+target_link_libraries(
+    gorillas
+    ${SDL2_LIBRARIES}
+    /usr/lib/x86_64-linux-gnu/libSDL2_ttf.so
+)
