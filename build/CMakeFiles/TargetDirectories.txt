@@ -1,3 +1,0 @@
-/home/collide/gorillas/build/CMakeFiles/gorillas.dir
-/home/collide/gorillas/build/CMakeFiles/edit_cache.dir
-/home/collide/gorillas/build/CMakeFiles/rebuild_cache.dir

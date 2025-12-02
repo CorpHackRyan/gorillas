@@ -9,4 +9,4 @@ include_directories(${CURSES_INCLUDE_DIR})
 
 add_executable(gorillas src/main.c)
 
-target_link_libraries(gorillas ${CURSES_LIBRARIES})
+target_link_libraries(gorillas ncursesw)
