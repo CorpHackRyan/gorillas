@@ -153,12 +153,16 @@ void intro_screen() {
 }
 
 
+
+// IMAGE RENDERING
+
+
 int main() {
     setlocale(LC_ALL, "");
     int ch;
     int player1_x = 10, player1_y = 20;
     int player2_x = 70, player2_y = 30;
-    char* player1 = '>';                   // If you want to print a whole string, you need mvprintw() instead of mvaddch():
+    char player1 = '>';                   // If you want to print a whole string, you need mvprintw() instead of mvaddch():
     char player2 = '#';
 
     initscr();
@@ -167,8 +171,37 @@ int main() {
 
 
     // Run the intro screen first
-    intro_screen();         // Display the intro screen
+    intro_screen(); 
     
+    // Initialize colors
+    start_color();              // Enable color
+    use_default_colors();       // Allow transparent background
+    
+    // Ensure the terminal supports colors LOL :D
+    if (!has_colors() || !can_change_color()) {
+        endwin();
+        printf("Your terminal does not support colors or changing colors.\n");
+        return 1;
+    }
+
+    // Use 256-color mode
+    if (COLORS < 256) {
+        endwin();
+        printf("Terminal must support 256 colors.\n");
+        return 1;
+    }
+        
+    start_color();                             // enable colors
+    
+    // Redefine COLOR_BLUE to a darker shade (RGB values 0-1000)
+    // Here: very dark blue
+    init_color(COLOR_BLUE, 0, 0, 800);
+
+    // Set a color pair: foreground = default, background = our dark blue
+    init_pair(1, -1, COLOR_BLUE);
+
+    bkgd(COLOR_PAIR(1)); // Apply background color
+    clear();
 
 
     mvprintw(1, 5, "Welcome to Gorillas in C!"); 
