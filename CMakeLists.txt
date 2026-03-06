@@ -8,6 +8,9 @@ set(CMAKE_BUILD_TYPE Debug)
 find_package(SDL2 REQUIRED)
 include_directories(${SDL2_INCLUDE_DIRS})
 
+# Find SDL2_ttf
+find_package(SDL2_ttf REQUIRED)
+
 # Collect all source files
 file(GLOB SOURCES "src/*.c")
 set(BGM_MP3_SRC "${CMAKE_SOURCE_DIR}/assets/sounds/brianD_starkiller.mp3")
@@ -32,6 +35,6 @@ target_link_options(gorillas PRIVATE -Wl,-z,noexecstack)
 target_link_libraries(
     gorillas
     ${SDL2_LIBRARIES}
-    /usr/lib/x86_64-linux-gnu/libSDL2_ttf.so
+    SDL2_ttf::SDL2_ttf
     m
 )
