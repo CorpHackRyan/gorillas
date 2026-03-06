@@ -2,53 +2,52 @@
 #include <SDL2/SDL_ttf.h>
 #include <stdio.h>
 
+#include "game.h"
+#include "graphics.h"
+#include "input.h"
 
-// int main() {
-//     printf("\033[2J");      // Clear screen
-//     printf("\033[H");       // Move cursor to top-left
+int main(void) {
+    const int window_w = 960;
+    const int window_h = 720;
 
-//     for (int i = 0; i < 10; i++) {
-//         printf("Frame %d\n", i);
-//         fflush(stdout);     // Ensure output is shown immediately
-//         usleep(1000000);     // 0.5 second delay
-//         printf("\033[H");   // Move cursor back to top-left
-//     }
-
-//     return 0;
-// }
-
-
-int main() {
     if (SDL_Init(SDL_INIT_VIDEO) != 0) {
-        printf("SDL_Init Error: %s\n", SDL_GetError());
+        fprintf(stderr, "SDL_Init Error: %s\n", SDL_GetError());
         return 1;
     }
 
     if (TTF_Init() != 0) {
-        printf("TTF_Init Error: %s\n", TTF_GetError());
+        fprintf(stderr, "TTF_Init Error: %s\n", TTF_GetError());
         SDL_Quit();
         return 1;
     }
 
     SDL_Window *window = SDL_CreateWindow(
-        "SDL Text Example",
+        "Gorillas C Port",
         SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
-        800, 600,
+        window_w, window_h,
         SDL_WINDOW_SHOWN
     );
+    if (!window) {
+        fprintf(stderr, "SDL_CreateWindow Error: %s\n", SDL_GetError());
+        TTF_Quit();
+        SDL_Quit();
+        return 1;
+    }
 
-    SDL_Renderer *renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED);
+    SDL_Renderer *renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC);
+    if (!renderer) {
+        renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_SOFTWARE);
+    }
+    if (!renderer) {
+        fprintf(stderr, "SDL_CreateRenderer Error: %s\n", SDL_GetError());
+        SDL_DestroyWindow(window);
+        TTF_Quit();
+        SDL_Quit();
+        return 1;
+    }
 
-    // Load a font (make sure the path is correct)
-    //TTF_Font *font = TTF_OpenFont("/usr/share/fonts/truetype/dejavu/DejaVuSansMono-Bold.ttf", 64);
-    TTF_Font* font = TTF_OpenFont("../assets/fonts/Px437_IBM_VGA_8x16.ttf", 64);
-
-//     char cwd[512];
-// getcwd(cwd, sizeof(cwd));
-// printf("Working dir: %s\n", cwd);
-
-    if (!font) {
-        printf("TTF_OpenFont Error: %s\n", TTF_GetError());
+    GraphicsContext gfx = {0};
+    if (!graphics_init(&gfx, 24)) {
         SDL_DestroyRenderer(renderer);
         SDL_DestroyWindow(window);
         TTF_Quit();
@@ -56,43 +55,30 @@ int main() {
         return 1;
     }
 
+    GameState game;
+    game_init(&game, window_w, window_h);
+    SDL_StartTextInput();
 
+    Uint64 prev_counter = SDL_GetPerformanceCounter();
+    while (game.running) {
+        Uint64 now_counter = SDL_GetPerformanceCounter();
+        float dt_seconds = (float)(now_counter - prev_counter) / (float)SDL_GetPerformanceFrequency();
+        prev_counter = now_counter;
 
-    char *intro_txt1 = "Copyright (C) CorpHackRyan Corporation 2025";
-    char *intro_txt2 = "our mission is to hit your opponent with the exploding";
-    char *intro_txt3 = "banana by varying the angle and power of your throw, taking";
-    char *intro_txt4 = "into account wind speed, gravity, and the city skyline.";
-    char *intro_txt5 = "The wind speed is shown by a directional arrow at the bottom";
-    char *intro_txt6 = "of the playing field, its length relative to its strength.";
-    char *intro_txt7 = "Press any key to continue";
+        InputState input;
+        input_begin_frame(&input);
 
-    SDL_Color color = {255, 255, 0, 255}; // white
-
-
-    SDL_Surface *surface = TTF_RenderText_Solid(font, intro_txt1, color);
-    SDL_Texture *texture = SDL_CreateTextureFromSurface(renderer, surface);
-    SDL_FreeSurface(surface);
-
-    int running = 1;
-    SDL_Event e;
-
-    while (running) {
-        while (SDL_PollEvent(&e)) {
-            if (e.type == SDL_QUIT) running = 0;
+        SDL_Event event;
+        while (SDL_PollEvent(&event)) {
+            input_handle_event(&input, &event);
         }
-        SDL_SetRenderDrawColor(renderer, 0, 0, 128, 255); // dark blue background
-        SDL_RenderClear(renderer);
 
-        // Draw the text
-        SDL_Rect dst = {50, 50, 300, 50}; // position and size
-        SDL_RenderCopy(renderer, texture, NULL, &dst);
-
-        SDL_RenderPresent(renderer);
-        
+        game_update(&game, &input, dt_seconds);
+        graphics_render(renderer, &gfx, &game);
     }
 
-    SDL_DestroyTexture(texture);
-    TTF_CloseFont(font);
+    graphics_shutdown(&gfx);
+    SDL_StopTextInput();
     SDL_DestroyRenderer(renderer);
     SDL_DestroyWindow(window);
     TTF_Quit();

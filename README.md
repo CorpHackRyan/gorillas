@@ -1,49 +1,36 @@
-# 🐒 Gorillas in C
-## 🎮 Terminal Game Engine Using ncurses
-This project is the beginning of a terminal-based clone of *Gorillas* — written in pure C using the ncurses library. You control two on-screen characters:
+# Gorillas in C
 
-- **Player 1:** `@`
-- **Player 2:** `#`
+Modern C rewrite of classic Gorillas, currently using SDL2/SDL2_ttf.
 
-Both can be drawn and moved around a real-time ncurses game world.  
-This is your foundation for a full physics + projectile game.
+## Build and Run
 
----
+From the repo root:
 
-## ✨ Features
-### ✔️ ncurses-Based Movement Engine
-- Move **Player 1 (`@`)** using arrow keys
-- Characters erase and redraw smoothly
-- Prevents movement outside the terminal bounds
-- Arrow keys enabled with `keypad(stdscr, TRUE)`
-- Cursor hidden for a clean UI
-- Real-time key reading via `getch()`
-
----
-
-## 📜 How the Code Works
-### 🔧 Initialization
-```c
-initscr();        // Start ncurses mode
-curs_set(0);      // Hide cursor
-keypad(stdscr, TRUE); // Enable arrow keys
-noecho();         // Don't echo keypresses
-y = row (top → bottom)
-x = column (left → right)
-mvaddch(player1_y, player1_x, '@');
-
-## 🧠 Ternary Operator
-You use this to stop `@` from moving offscreen:
-
-```c
-player1_y = (player1_y > 0) ? player1_y - 1 : player1_y;
+```bash
+cmake -S . -B build
+cmake --build build -j
+./build/gorillas
 ```
 
-## This is Stage 1 of my game engine.
-### Future features include:
+What each command does:
 
-- 🏙️ Random city skyline
-- 🌬️ Wind affecting projectiles
-- 🍌 Banana physics (angle + velocity)
-- 💥 Explosion collision detection
-- 👥 Two-player mode (@ vs #)
+- `cmake -S . -B build`
+  - Configures the project using `CMakeLists.txt` in the current directory (`-S .`).
+  - Generates build files into the `build/` directory (`-B build`) so source files stay clean.
+- `cmake --build build -j`
+  - Compiles the project using the generated build files in `build/`.
+  - `-j` enables parallel compilation for faster builds.
+- `./build/gorillas`
+  - Runs the compiled game executable.
+
+If dependencies are missing on Debian/Ubuntu:
+
+```bash
+sudo apt update
+sudo apt install -y build-essential cmake libsdl2-dev libsdl2-ttf-dev
+```
+
+## Notes
+
+- The game tries both `assets/fonts/...` and `../assets/fonts/...`, so you can run it from repo root (`./build/gorillas`) or from inside `build/` (`./gorillas`).
+- In headless/sandbox environments (no real display), SDL may fail to open a graphics device.
