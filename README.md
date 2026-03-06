@@ -2,6 +2,12 @@
 
 Modern C rewrite of classic Gorillas, currently using SDL2/SDL2_ttf.
 
+## Demo Video
+
+[![Watch on YouTube](https://img.youtube.com/vi/nvx3Epcc4tg/maxresdefault.jpg)](https://www.youtube.com/watch?v=nvx3Epcc4tg)
+
+Direct link: https://www.youtube.com/watch?v=nvx3Epcc4tg
+
 ## Build and Run
 
 From the repo root:

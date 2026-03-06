@@ -269,7 +269,7 @@ int sound_start_bgm_loop(void) {
         snprintf(
             cmd,
             sizeof(cmd),
-            "while true; do ffplay -nodisp -loglevel quiet '%s' >/dev/null 2>&1; sleep 0.1; done",
+            "while true; do ffplay -nodisp -autoexit -loglevel quiet '%s' >/dev/null 2>&1; sleep 0.1; done",
             bgm_path
         );
         execl("/bin/sh", "sh", "-c", cmd, (char *)NULL);
