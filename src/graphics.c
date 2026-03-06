@@ -132,6 +132,7 @@ static void draw_sun(
     SDL_Renderer *renderer,
     int center_x,
     int center_y,
+    int shocked,
     int track_enabled,
     float target_x,
     float target_y
@@ -186,10 +187,14 @@ static void draw_sun(
     draw_filled_circle(renderer, center_x - 9 + eye_shift_x, center_y - 6 + eye_shift_y, 1, feature);
     draw_filled_circle(renderer, center_x + 9 + eye_shift_x, center_y - 6 + eye_shift_y, 1, feature);
     SDL_SetRenderDrawColor(renderer, feature.r, feature.g, feature.b, feature.a);
-    for (int x = -10; x <= 10; x++) {
-        int y = 6 - (x * x) / 20;
-        SDL_RenderDrawPoint(renderer, center_x + mouth_shift_x + x, center_y + mouth_shift_y + 12 + y);
-        SDL_RenderDrawPoint(renderer, center_x + mouth_shift_x + x, center_y + mouth_shift_y + 13 + y);
+    if (shocked) {
+        draw_filled_circle(renderer, center_x + mouth_shift_x, center_y + mouth_shift_y + 14, 4, feature);
+    } else {
+        for (int x = -10; x <= 10; x++) {
+            int y = 6 - (x * x) / 20;
+            SDL_RenderDrawPoint(renderer, center_x + mouth_shift_x + x, center_y + mouth_shift_y + 12 + y);
+            SDL_RenderDrawPoint(renderer, center_x + mouth_shift_x + x, center_y + mouth_shift_y + 13 + y);
+        }
     }
 }
 
@@ -319,18 +324,22 @@ static void render_splash(SDL_Renderer *renderer, const GraphicsContext *gfx, co
     SDL_Color white = {255, 255, 255, 255};
     SDL_Color gray = {170, 170, 170, 255};
     SDL_Color yellow = {255, 255, 0, 255};
+    const char *intro_lines[] = {
+        "Your mission is to hit your opponent with the exploding",
+        "banana by varying the angle and power of your throw, taking",
+        "into account wind speed, gravity, and the city skyline.",
+        "The wind speed is shown by a directional arrow at the bottom",
+        "of the playing field, its length relative to its strength."
+    };
 
     render_sparkle_border(renderer, gfx, game);
     draw_text_center(renderer, gfx->font, "Q B a s i c    G O R I L L A S", 120, white, game->screen_w);
     draw_text_center(renderer, gfx->font, "Copyright (C) Microsoft Corporation 1990", 170, gray, game->screen_w);
-    draw_text_center(
-        renderer,
-        gfx->font,
-        "Your mission is to hit your opponent with the exploding banana.",
-        240,
-        gray,
-        game->screen_w
-    );
+    draw_text_center(renderer, gfx->font, intro_lines[0], 240, gray, game->screen_w);
+    draw_text_center(renderer, gfx->font, intro_lines[1], 275, gray, game->screen_w);
+    draw_text_center(renderer, gfx->font, intro_lines[2], 310, gray, game->screen_w);
+    draw_text_center(renderer, gfx->font, intro_lines[3], 345, gray, game->screen_w);
+    draw_text_center(renderer, gfx->font, intro_lines[4], 380, gray, game->screen_w);
     draw_text_center(
         renderer,
         gfx->font,
@@ -348,6 +357,8 @@ static void render_name_entry(SDL_Renderer *renderer, const GraphicsContext *gfx
     char line1[128];
     char line2[128];
     char line3[128];
+    char line4[128];
+    char line5[128];
     const char *cursor = "_";
 
     snprintf(line1, sizeof(line1), "Name of Player 1 (Default = 'Player 1'): %s%s",
@@ -357,17 +368,78 @@ static void render_name_entry(SDL_Renderer *renderer, const GraphicsContext *gfx
     snprintf(
         line3,
         sizeof(line3),
+        "Play to how many total points (Default = 3): %s%s",
+        game->points_input,
+        (game->active_name_index == 2) ? cursor : ""
+    );
+    snprintf(
+        line4,
+        sizeof(line4),
         "Gravity in Meters/Sec (Earth = 9.8): %s%s",
         game->gravity_input,
-        (game->active_name_index == 2) ? cursor : ""
+        (game->active_name_index == 3) ? cursor : ""
+    );
+    snprintf(
+        line5,
+        sizeof(line5),
+        "Mouse Aim (On/Off, default On): %s%s",
+        game->mouse_aim_input,
+        (game->active_name_index == 4) ? cursor : ""
     );
 
     draw_text_center(renderer, gfx->font, "Enter Setup Values", 140, white, game->screen_w);
     draw_text(renderer, gfx->font, line1, 80, 260, (game->active_name_index == 0) ? yellow : white);
     draw_text(renderer, gfx->font, line2, 80, 320, (game->active_name_index == 1) ? yellow : white);
     draw_text(renderer, gfx->font, line3, 80, 380, (game->active_name_index == 2) ? yellow : white);
-    draw_text(renderer, gfx->font, "Press Enter to confirm each field", 80, 450, gray);
-    draw_text(renderer, gfx->font, "Leave gravity blank for default 9.8", 80, 485, gray);
+    draw_text(renderer, gfx->font, line4, 80, 440, (game->active_name_index == 3) ? yellow : white);
+    draw_text(renderer, gfx->font, line5, 80, 500, (game->active_name_index == 4) ? yellow : white);
+    draw_text(renderer, gfx->font, "Press Enter to confirm each field", 80, 560, gray);
+    draw_text(renderer, gfx->font, "Leave points/gravity/mouse blank for defaults", 80, 595, gray);
+}
+
+static void render_game_over(SDL_Renderer *renderer, const GraphicsContext *gfx, const GameState *game) {
+    SDL_Color white = {255, 255, 255, 255};
+    SDL_Color yellow = {255, 255, 0, 255};
+    char score_line1[96];
+    char score_line2[96];
+    char winner_line[96];
+
+    snprintf(score_line1, sizeof(score_line1), "%s: %d", game->player_names[0], game->scores[0]);
+    snprintf(score_line2, sizeof(score_line2), "%s: %d", game->player_names[1], game->scores[1]);
+    if (game->match_winner_index >= 0) {
+        snprintf(winner_line, sizeof(winner_line), "%s wins the match!", game->player_names[game->match_winner_index]);
+    } else {
+        snprintf(winner_line, sizeof(winner_line), "Match complete");
+    }
+
+    draw_text_center(renderer, gfx->font, "GAME OVER!", 200, white, game->screen_w);
+    draw_text_center(renderer, gfx->font, "Score:", 260, white, game->screen_w);
+    draw_text_center(renderer, gfx->font, score_line1, 310, yellow, game->screen_w);
+    draw_text_center(renderer, gfx->font, score_line2, 350, yellow, game->screen_w);
+    draw_text_center(renderer, gfx->font, winner_line, 420, white, game->screen_w);
+    draw_text_center(renderer, gfx->font, "Press any key to continue", 520, white, game->screen_w);
+}
+
+static void render_mouse_aim_preview(SDL_Renderer *renderer, const GameState *game, const PlayerState *player, int player_index) {
+    const float y_scale = (float)game->screen_h / 350.0f;
+    const float wind_accel = game->wind.accel_x / 5.0f;
+    const float gravity = game->gravity_mps2;
+    float angle_rad = player->angle_deg * (float)(3.14159265358979323846 / 180.0);
+    float dir = (player_index == 0) ? 1.0f : -1.0f;
+    float vx = cosf(angle_rad) * player->power * dir;
+    float vy = -sinf(angle_rad) * player->power;
+    float x = player->x;
+    float y = player->y - 24.0f;
+    SDL_Color c = {255, 255, 0, 255};
+
+    SDL_SetRenderDrawColor(renderer, c.r, c.g, c.b, c.a);
+    for (int i = 0; i < 10; i++) {
+        float t = 0.25f + (float)i * 0.22f;
+        float px = x + (vx * t) + (0.5f * wind_accel * t * t);
+        float py = y + ((vy * t) + (0.5f * gravity * t * t)) * y_scale;
+        SDL_Rect dash = {(int)px - 4, (int)py - 1, 8, 2};
+        SDL_RenderFillRect(renderer, &dash);
+    }
 }
 
 static void render_gameplay(SDL_Renderer *renderer, const GraphicsContext *gfx, const GameState *game) {
@@ -383,6 +455,7 @@ static void render_gameplay(SDL_Renderer *renderer, const GraphicsContext *gfx, 
         renderer,
         game->screen_w / 2,
         70,
+        game->sun_shocked,
         game->projectile.active,
         game->projectile.x,
         game->projectile.y
@@ -458,6 +531,11 @@ static void render_gameplay(SDL_Renderer *renderer, const GraphicsContext *gfx, 
     TTF_SizeText(gfx->font, game->player_names[1], &p2_name_w, &p2_name_h);
     draw_text(renderer, gfx->font, game->player_names[0], 20, 15, white);
     draw_text(renderer, gfx->font, game->player_names[1], game->screen_w - p2_name_w - 20, 15, white);
+    {
+        char score_line[64];
+        snprintf(score_line, sizeof(score_line), "%d >Score< %d", game->scores[0], game->scores[1]);
+        draw_text_center(renderer, gfx->font, score_line, game->screen_h - 40, white, game->screen_w);
+    }
 
     if (game->phase == GAME_PHASE_ROUND_END && game->round_winner_index >= 0) {
         char msg[96];
@@ -476,27 +554,42 @@ static void render_gameplay(SDL_Renderer *renderer, const GraphicsContext *gfx, 
         int angle_x = 20;
         int velocity_x = 20;
 
-        snprintf(
-            angle_line,
-            sizeof(angle_line),
-            "Angle: %s%s",
-            game->aim_angle_input,
-            (game->aim_field == 0) ? "_" : ""
-        );
+        if (game->mouse_aim_enabled) {
+            snprintf(angle_line, sizeof(angle_line), "Angle: %.0f", game->players[game->current_player].angle_deg);
+        } else {
+            snprintf(
+                angle_line,
+                sizeof(angle_line),
+                "Angle: %s%s",
+                game->aim_angle_input,
+                (game->aim_field == 0) ? "_" : ""
+            );
+        }
         if (game->current_player == 1) {
             TTF_SizeText(gfx->font, angle_line, &angle_w, &angle_h);
             angle_x = game->screen_w - angle_w - 20;
         }
-        draw_text(renderer, gfx->font, angle_line, angle_x, prompt_y, (game->aim_field == 0) ? yellow : white);
+        draw_text(
+            renderer,
+            gfx->font,
+            angle_line,
+            angle_x,
+            prompt_y,
+            (game->mouse_aim_enabled || game->aim_field == 0) ? yellow : white
+        );
 
-        if (game->aim_field == 1 || game->aim_velocity_input[0] != '\0') {
-            snprintf(
-                velocity_line,
-                sizeof(velocity_line),
-                "Velocity: %s%s",
-                game->aim_velocity_input,
-                (game->aim_field == 1) ? "_" : ""
-            );
+        if (game->mouse_aim_enabled || game->aim_field == 1 || game->aim_velocity_input[0] != '\0') {
+            if (game->mouse_aim_enabled) {
+                snprintf(velocity_line, sizeof(velocity_line), "Velocity: %.0f", game->players[game->current_player].power);
+            } else {
+                snprintf(
+                    velocity_line,
+                    sizeof(velocity_line),
+                    "Velocity: %s%s",
+                    game->aim_velocity_input,
+                    (game->aim_field == 1) ? "_" : ""
+                );
+            }
             if (game->current_player == 1) {
                 TTF_SizeText(gfx->font, velocity_line, &velocity_w, &velocity_h);
                 velocity_x = game->screen_w - velocity_w - 20;
@@ -507,8 +600,12 @@ static void render_gameplay(SDL_Renderer *renderer, const GraphicsContext *gfx, 
                 velocity_line,
                 velocity_x,
                 prompt_y + 30,
-                (game->aim_field == 1) ? yellow : white
+                (game->mouse_aim_enabled || game->aim_field == 1) ? yellow : white
             );
+        }
+
+        if (game->mouse_aim_enabled) {
+            render_mouse_aim_preview(renderer, game, &game->players[game->current_player], game->current_player);
         }
     }
 }
@@ -526,6 +623,8 @@ void graphics_render(SDL_Renderer *renderer, const GraphicsContext *gfx, const G
         render_splash(renderer, gfx, game);
     } else if (game->phase == GAME_PHASE_NAME_ENTRY) {
         render_name_entry(renderer, gfx, game);
+    } else if (game->phase == GAME_PHASE_GAME_OVER) {
+        render_game_over(renderer, gfx, game);
     } else {
         render_gameplay(renderer, gfx, game);
     }

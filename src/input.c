@@ -9,6 +9,10 @@ void input_begin_frame(InputState *input) {
     input->backspace = 0;
     input->submit = 0;
     input->next_field = 0;
+    input->mouse_moved = 0;
+    input->mouse_click = 0;
+    input->mouse_x = 0;
+    input->mouse_y = 0;
     input->angle_delta = 0.0f;
     input->power_delta = 0.0f;
     input->text[0] = '\0';
@@ -29,6 +33,20 @@ void input_handle_event(InputState *input, const SDL_Event *event) {
         memcpy(input->text, event->text.text, copy_len);
         input->text[copy_len] = '\0';
         input->text_len = (int)copy_len;
+        return;
+    }
+
+    if (event->type == SDL_MOUSEMOTION) {
+        input->mouse_moved = 1;
+        input->mouse_x = event->motion.x;
+        input->mouse_y = event->motion.y;
+        return;
+    }
+
+    if (event->type == SDL_MOUSEBUTTONDOWN && event->button.button == SDL_BUTTON_LEFT) {
+        input->mouse_click = 1;
+        input->mouse_x = event->button.x;
+        input->mouse_y = event->button.y;
         return;
     }
 

@@ -7,6 +7,16 @@ Modern C rewrite of classic Gorillas, currently using SDL2/SDL2_ttf.
 From the repo root:
 
 ```bash
+./install-deps.sh
+./build.sh
+```
+
+`install-deps.sh` installs system dependencies for macOS/Homebrew, Debian/Ubuntu, Fedora, or Arch.
+`build.sh` configures, builds, and runs the game in one step.
+
+Equivalent manual commands:
+
+```bash
 cmake -S . -B build
 cmake --build build -j
 ./build/gorillas
@@ -27,7 +37,13 @@ If dependencies are missing on Debian/Ubuntu:
 
 ```bash
 sudo apt update
-sudo apt install -y build-essential cmake libsdl2-dev libsdl2-ttf-dev
+sudo apt install -y build-essential cmake libsdl2-dev libsdl2-ttf-dev ffmpeg
+```
+
+If dependencies are missing on macOS (Homebrew):
+
+```bash
+brew install cmake sdl2 sdl2_ttf ffmpeg
 ```
 
 ## Notes

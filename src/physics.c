@@ -1,4 +1,5 @@
 #include "physics.h"
+#include "sound.h"
 
 #include <math.h>
 
@@ -74,12 +75,14 @@ static void resolve_gorilla_hit(GameState *game, int hit_player_index) {
     game->explosion_x = game->players[hit_player_index].x;
     game->explosion_y = game->players[hit_player_index].y - 24.0f;
     game->explosion_radius = 4.0f;
+    sound_play_gorilla_hit();
 }
 
 static void finish_turn(GameState *game) {
     game->projectile.active = 0;
     game->current_player = 1 - game->current_player;
     game->phase = GAME_PHASE_AIMING;
+    game->sun_shocked = 0;
     game->aim_field = 0;
     game->aim_angle_input[0] = '\0';
     game->aim_velocity_input[0] = '\0';
@@ -100,6 +103,8 @@ void physics_launch_projectile(GameState *game, int player_index) {
     game->projectile.vy = -sinf(angle_rad) * player->power;
     game->projectile.owner_index = player_index;
     game->projectile.ignore_owner_collision = 1;
+    game->sun_shocked = 0;
+    sound_play_throw();
 }
 
 void physics_step_projectile(GameState *game, float dt_seconds) {
@@ -117,6 +122,17 @@ void physics_step_projectile(GameState *game, float dt_seconds) {
     game->projectile.vy += gravity * bas_dt;
     game->projectile.x += game->projectile.vx * bas_dt;
     game->projectile.y += game->projectile.vy * bas_dt * y_scale;
+
+    {
+        const float sun_x = (float)game->screen_w * 0.5f;
+        const float sun_y = 70.0f;
+        const float sun_r = 28.0f;
+        float dx = game->projectile.x - sun_x;
+        float dy = game->projectile.y - sun_y;
+        if (dx * dx + dy * dy <= sun_r * sun_r) {
+            game->sun_shocked = 1;
+        }
+    }
 
     if (game->projectile.ignore_owner_collision &&
         game->projectile.owner_index >= 0 &&
@@ -148,12 +164,14 @@ void physics_step_projectile(GameState *game, float dt_seconds) {
 
     if (game->projectile.y >= (float)game->street_y) {
         add_crater(game, game->projectile.x, (float)game->street_y, 18.0f);
+        sound_play_explosion();
         finish_turn(game);
         return;
     }
 
     if (point_hits_solid_building(game, game->projectile.x, game->projectile.y)) {
         add_crater(game, game->projectile.x, game->projectile.y, 22.0f);
+        sound_play_explosion();
         finish_turn(game);
     }
 }

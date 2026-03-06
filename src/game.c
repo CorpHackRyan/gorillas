@@ -1,7 +1,9 @@
 #include "game.h"
 
 #include "physics.h"
+#include <math.h>
 #include <stdlib.h>
+#include <strings.h>
 #include <string.h>
 #include <time.h>
 
@@ -91,6 +93,7 @@ static void setup_round(GameState *game) {
     game->crater_cursor = 0;
     game->hit_player_index = -1;
     game->round_winner_index = -1;
+    game->sun_shocked = 0;
     game->round_end_timer = 0.0f;
     game->explosion_radius = 0.0f;
     reset_aim_entry(game);
@@ -125,6 +128,17 @@ static void append_player_name_text(GameState *game, int player_index, const cha
         }
     }
     name[len] = '\0';
+}
+
+static void append_ascii_text(char *buffer, size_t capacity, const char *text) {
+    size_t len = strlen(buffer);
+    for (size_t i = 0; text[i] != '\0' && len + 1 < capacity; i++) {
+        unsigned char c = (unsigned char)text[i];
+        if (c >= 32 && c <= 126) {
+            buffer[len++] = (char)c;
+        }
+    }
+    buffer[len] = '\0';
 }
 
 static void backspace_player_name(GameState *game, int player_index) {
@@ -200,6 +214,65 @@ static int parse_positive_number(const char *text, float *out_value) {
     return 1;
 }
 
+static int parse_points_to_win(const char *text, int *out_value) {
+    char *end = NULL;
+    long value = strtol(text, &end, 10);
+    if (end == text || *end != '\0') {
+        return 0;
+    }
+    if (value <= 0 || value > 99) {
+        return 0;
+    }
+    *out_value = (int)value;
+    return 1;
+}
+
+static int parse_mouse_aim_option(const char *text, int *out_enabled) {
+    if (text[0] == '\0') {
+        *out_enabled = 1;
+        return 1;
+    }
+    if (strcasecmp(text, "on") == 0 || strcasecmp(text, "y") == 0 || strcmp(text, "1") == 0) {
+        *out_enabled = 1;
+        return 1;
+    }
+    if (strcasecmp(text, "off") == 0 || strcasecmp(text, "n") == 0 || strcmp(text, "0") == 0) {
+        *out_enabled = 0;
+        return 1;
+    }
+    return 0;
+}
+
+static void update_mouse_aim(PlayerState *player, int player_index, int mouse_x, int mouse_y) {
+    float dx = (float)mouse_x - player->x;
+    float dy = (float)mouse_y - player->y;
+    float facing_dx = (player_index == 0) ? dx : -dx;
+    float angle_deg = 0.0f;
+    float dist = 0.0f;
+
+    if (facing_dx < 1.0f) {
+        facing_dx = 1.0f;
+    }
+
+    angle_deg = atan2f(-dy, facing_dx) * (180.0f / 3.14159265358979323846f);
+    if (angle_deg < 5.0f) {
+        angle_deg = 5.0f;
+    }
+    if (angle_deg > 85.0f) {
+        angle_deg = 85.0f;
+    }
+    player->angle_deg = angle_deg;
+
+    dist = sqrtf(dx * dx + dy * dy) * 0.75f;
+    if (dist < 30.0f) {
+        dist = 30.0f;
+    }
+    if (dist > 220.0f) {
+        dist = 220.0f;
+    }
+    player->power = dist;
+}
+
 void game_init(GameState *game, int screen_w, int screen_h) {
     static int seeded = 0;
     if (!seeded) {
@@ -218,6 +291,11 @@ void game_init(GameState *game, int screen_w, int screen_h) {
     game->active_name_index = 0;
     game->gravity_mps2 = 9.8f;
     game->gravity_input[0] = '\0';
+    game->points_to_win = 3;
+    game->points_input[0] = '\0';
+    game->mouse_aim_enabled = 1;
+    game->mouse_aim_input[0] = '\0';
+    game->match_winner_index = -1;
     reset_aim_entry(game);
     game->scores[0] = 0;
     game->scores[1] = 0;
@@ -242,16 +320,24 @@ void game_update(GameState *game, const InputState *input, float dt_seconds) {
         if (input->backspace) {
             if (game->active_name_index <= 1) {
                 backspace_player_name(game, game->active_name_index);
-            } else {
+            } else if (game->active_name_index == 2) {
+                backspace_text(game->points_input);
+            } else if (game->active_name_index == 3) {
                 backspace_text(game->gravity_input);
+            } else if (game->active_name_index == 4) {
+                backspace_text(game->mouse_aim_input);
             }
         }
 
         if (input->text_len > 0) {
             if (game->active_name_index <= 1) {
                 append_player_name_text(game, game->active_name_index, input->text);
-            } else {
+            } else if (game->active_name_index == 2) {
+                append_numeric_text(game->points_input, sizeof(game->points_input), input->text);
+            } else if (game->active_name_index == 3) {
                 append_numeric_text(game->gravity_input, sizeof(game->gravity_input), input->text);
+            } else if (game->active_name_index == 4) {
+                append_ascii_text(game->mouse_aim_input, sizeof(game->mouse_aim_input), input->text);
             }
         }
 
@@ -259,18 +345,36 @@ void game_update(GameState *game, const InputState *input, float dt_seconds) {
             if (game->active_name_index <= 1) {
                 finalize_name_if_empty(game, game->active_name_index);
                 game->active_name_index++;
-            } else {
+            } else if (game->active_name_index == 2) {
+                int points = 0;
+                if (game->points_input[0] == '\0') {
+                    game->points_to_win = 3;
+                    game->active_name_index = 3;
+                } else if (parse_points_to_win(game->points_input, &points)) {
+                    game->points_to_win = points;
+                    game->active_name_index = 3;
+                } else {
+                    game->points_input[0] = '\0';
+                }
+            } else if (game->active_name_index == 3) {
                 float g = 0.0f;
                 if (game->gravity_input[0] == '\0') {
                     game->gravity_mps2 = 9.8f;
-                    game->phase = GAME_PHASE_AIMING;
-                    reset_aim_entry(game);
+                    game->active_name_index = 4;
                 } else if (parse_positive_number(game->gravity_input, &g)) {
                     game->gravity_mps2 = g;
+                    game->active_name_index = 4;
+                } else {
+                    game->gravity_input[0] = '\0';
+                }
+            } else if (game->active_name_index == 4) {
+                int enabled = 0;
+                if (parse_mouse_aim_option(game->mouse_aim_input, &enabled)) {
+                    game->mouse_aim_enabled = enabled;
                     game->phase = GAME_PHASE_AIMING;
                     reset_aim_entry(game);
                 } else {
-                    game->gravity_input[0] = '\0';
+                    game->mouse_aim_input[0] = '\0';
                 }
             }
         }
@@ -280,6 +384,17 @@ void game_update(GameState *game, const InputState *input, float dt_seconds) {
     if (game->phase == GAME_PHASE_AIMING) {
         PlayerState *player = &game->players[game->current_player];
         char *buffer = active_aim_buffer(game);
+
+        if (game->mouse_aim_enabled) {
+            if (input->mouse_moved || input->mouse_click) {
+                update_mouse_aim(player, game->current_player, input->mouse_x, input->mouse_y);
+            }
+            if (input->mouse_click || input->fire) {
+                physics_launch_projectile(game, game->current_player);
+                game->phase = GAME_PHASE_PROJECTILE;
+            }
+            return;
+        }
 
         if (input->backspace) {
             size_t len = strlen(buffer);
@@ -320,9 +435,33 @@ void game_update(GameState *game, const InputState *input, float dt_seconds) {
         game->round_end_timer += dt_seconds;
         game->explosion_radius += 140.0f * dt_seconds;
         if (game->round_end_timer >= 1.5f) {
-            game->phase = GAME_PHASE_AIMING;
-            game->current_player = game->round_winner_index;
+            if (game->round_winner_index >= 0 && game->scores[game->round_winner_index] >= game->points_to_win) {
+                game->match_winner_index = game->round_winner_index;
+                game->phase = GAME_PHASE_GAME_OVER;
+            } else {
+                game->phase = GAME_PHASE_AIMING;
+                game->current_player = game->round_winner_index;
+                setup_round(game);
+            }
+        }
+        return;
+    }
+
+    if (game->phase == GAME_PHASE_GAME_OVER) {
+        if (input->any_key) {
+            game->scores[0] = 0;
+            game->scores[1] = 0;
+            game->phase = GAME_PHASE_SPLASH;
+            game->current_player = 0;
+            game->player_names[0][0] = '\0';
+            game->player_names[1][0] = '\0';
+            game->active_name_index = 0;
+            game->points_input[0] = '\0';
+            game->gravity_input[0] = '\0';
+            game->mouse_aim_input[0] = '\0';
+            game->match_winner_index = -1;
             setup_round(game);
         }
+        return;
     }
 }

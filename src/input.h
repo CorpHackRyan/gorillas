@@ -10,6 +10,10 @@ typedef struct InputState {
     int backspace;
     int submit;
     int next_field;
+    int mouse_moved;
+    int mouse_click;
+    int mouse_x;
+    int mouse_y;
     float angle_delta;
     float power_delta;
     char text[32];

@@ -8,7 +8,8 @@ typedef enum GamePhase {
     GAME_PHASE_NAME_ENTRY,
     GAME_PHASE_AIMING,
     GAME_PHASE_PROJECTILE,
-    GAME_PHASE_ROUND_END
+    GAME_PHASE_ROUND_END,
+    GAME_PHASE_GAME_OVER
 } GamePhase;
 
 typedef struct PlayerState {
@@ -64,6 +65,10 @@ typedef struct GameState {
     int active_name_index;
     float gravity_mps2;
     char gravity_input[16];
+    int points_to_win;
+    char points_input[8];
+    int mouse_aim_enabled;
+    char mouse_aim_input[8];
     int scores[2];
     int aim_field;
     char aim_angle_input[16];
@@ -77,6 +82,8 @@ typedef struct GameState {
     int crater_cursor;
     int hit_player_index;
     int round_winner_index;
+    int match_winner_index;
+    int sun_shocked;
     float round_end_timer;
     float explosion_x;
     float explosion_y;
