@@ -29,7 +29,11 @@ static pid_t g_bgm_pid = -1;
 static char g_bgm_temp_path[256] = {0};
 
 extern const unsigned char _binary_brianD_starkiller_mp3_start[];
+#ifdef BGM_EMBED_C_ARRAY
+extern const size_t _binary_brianD_starkiller_mp3_len;
+#else
 extern const unsigned char _binary_brianD_starkiller_mp3_end[];
+#endif
 
 void sound_stop_bgm(void);
 
@@ -121,7 +125,6 @@ static void queue_tone_sequence(const Tone *tones, size_t tone_count) {
 
 static int ensure_embedded_bgm_file(void) {
     const unsigned char *start = _binary_brianD_starkiller_mp3_start;
-    const unsigned char *end = _binary_brianD_starkiller_mp3_end;
     size_t size = 0;
     int fd = -1;
     ssize_t written = 0;
@@ -131,11 +134,20 @@ static int ensure_embedded_bgm_file(void) {
     if (g_bgm_temp_path[0] != '\0') {
         return 1;
     }
-    if (!start || !end || end <= start) {
+    if (!start) {
         return 0;
     }
-
-    size = (size_t)(end - start);
+#ifdef BGM_EMBED_C_ARRAY
+    size = _binary_brianD_starkiller_mp3_len;
+#else
+    {
+        const unsigned char *end = _binary_brianD_starkiller_mp3_end;
+        if (!end || end <= start) {
+            return 0;
+        }
+        size = (size_t)(end - start);
+    }
+#endif
     fd = mkstemps(path_template, 4);
     if (fd < 0) {
         return 0;

@@ -37,13 +37,13 @@ If dependencies are missing on Debian/Ubuntu:
 
 ```bash
 sudo apt update
-sudo apt install -y build-essential cmake libsdl2-dev libsdl2-ttf-dev ffmpeg
+sudo apt install -y build-essential cmake python3 libsdl2-dev libsdl2-ttf-dev ffmpeg
 ```
 
 If dependencies are missing on macOS (Homebrew):
 
 ```bash
-brew install cmake sdl2 sdl2_ttf ffmpeg
+brew install cmake python sdl2 sdl2_ttf ffmpeg
 ```
 
 ## Notes

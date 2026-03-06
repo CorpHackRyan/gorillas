@@ -1,0 +1,1 @@
+/usr/bin/cc -g CMakeFiles/gorillas.dir/src/game.c.o CMakeFiles/gorillas.dir/src/graphics.c.o CMakeFiles/gorillas.dir/src/input.c.o CMakeFiles/gorillas.dir/src/main.c.o CMakeFiles/gorillas.dir/src/physics.c.o CMakeFiles/gorillas.dir/src/sound.c.o CMakeFiles/gorillas.dir/bgm_embed.c.o -o gorillas  /usr/lib/x86_64-linux-gnu/libSDL2.so /usr/lib/x86_64-linux-gnu/libSDL2_ttf.so -lm 

@@ -15,22 +15,22 @@ need_cmd() {
 install_with_apt() {
   log "Detected apt (Debian/Ubuntu). Installing dependencies..."
   sudo apt update
-  sudo apt install -y build-essential cmake libsdl2-dev libsdl2-ttf-dev ffmpeg
+  sudo apt install -y build-essential cmake python3 libsdl2-dev libsdl2-ttf-dev ffmpeg
 }
 
 install_with_dnf() {
   log "Detected dnf (Fedora). Installing dependencies..."
-  sudo dnf install -y gcc gcc-c++ make cmake SDL2-devel SDL2_ttf-devel ffmpeg
+  sudo dnf install -y gcc gcc-c++ make cmake python3 SDL2-devel SDL2_ttf-devel ffmpeg
 }
 
 install_with_pacman() {
   log "Detected pacman (Arch). Installing dependencies..."
-  sudo pacman -Sy --needed base-devel cmake sdl2 sdl2_ttf ffmpeg
+  sudo pacman -Sy --needed base-devel cmake python sdl2 sdl2_ttf ffmpeg
 }
 
 install_with_brew() {
   log "Detected Homebrew (macOS). Installing dependencies..."
-  brew install cmake sdl2 sdl2_ttf ffmpeg
+  brew install cmake python sdl2 sdl2_ttf ffmpeg
 }
 
 main() {
@@ -50,7 +50,7 @@ main() {
     exit 1
   fi
 
-  if need_cmd apt; then
+  if need_cmd apt-get; then
     install_with_apt
   elif need_cmd dnf; then
     install_with_dnf

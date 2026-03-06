@@ -1,0 +1,3 @@
+# Hashes of file build rules.
+ef23c14a72ddb87dda1ff57ddfaeaf64 CMakeFiles/embed_bgm
+34248877740cbf60a945e43c1913bedb bgm_embed.c

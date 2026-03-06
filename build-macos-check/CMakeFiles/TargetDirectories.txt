@@ -1,0 +1,4 @@
+/home/collide/gorillas/build-macos-check/CMakeFiles/embed_bgm.dir
+/home/collide/gorillas/build-macos-check/CMakeFiles/gorillas.dir
+/home/collide/gorillas/build-macos-check/CMakeFiles/edit_cache.dir
+/home/collide/gorillas/build-macos-check/CMakeFiles/rebuild_cache.dir
