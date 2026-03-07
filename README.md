@@ -17,7 +17,8 @@ From the repo root:
 ./build.sh
 ```
 
-`install-deps.sh` installs system dependencies for macOS/Homebrew, Debian/Ubuntu, Fedora, or Arch.
+`install-deps.sh` installs required system dependencies for macOS/Homebrew, Debian/Ubuntu, Fedora, or Arch.
+It also tries to install `ffmpeg` as optional (non-fatal if unavailable).
 `build.sh` configures, builds, and runs the game in one step.
 
 Equivalent manual commands:
@@ -43,13 +44,17 @@ If dependencies are missing on Debian/Ubuntu:
 
 ```bash
 sudo apt update
-sudo apt install -y build-essential cmake python3 libsdl2-dev libsdl2-ttf-dev ffmpeg
+sudo apt install -y build-essential cmake python3 libsdl2-dev libsdl2-ttf-dev
+# Optional:
+sudo apt install -y ffmpeg
 ```
 
 If dependencies are missing on macOS (Homebrew):
 
 ```bash
-brew install cmake python sdl2 sdl2_ttf ffmpeg
+brew install cmake python sdl2 sdl2_ttf
+# Optional:
+brew install ffmpeg
 ```
 
 ## Notes

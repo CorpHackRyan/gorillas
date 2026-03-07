@@ -244,18 +244,28 @@ static void draw_gorilla(SDL_Renderer *renderer, int x_center, int roof_y, Goril
 static TTF_Font *load_font_with_fallback(int font_px) {
     const char *font_paths[] = {
         "assets/fonts/Px437_IBM_VGA_8x16.ttf",
-        "../assets/fonts/Px437_IBM_VGA_8x16.ttf"
+        "../assets/fonts/Px437_IBM_VGA_8x16.ttf",
+        "/usr/share/fonts/truetype/dejavu/DejaVuSansMono.ttf",
+        "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
+        "/usr/share/fonts/truetype/freefont/FreeMono.ttf",
+        "/usr/share/fonts/truetype/liberation2/LiberationMono-Regular.ttf"
     };
 
     for (size_t i = 0; i < sizeof(font_paths) / sizeof(font_paths[0]); i++) {
         TTF_Font *font = TTF_OpenFont(font_paths[i], font_px);
         if (font) {
+            if (i > 1) {
+                fprintf(stderr, "Using fallback system font: %s\n", font_paths[i]);
+            }
             return font;
         }
     }
 
     fprintf(stderr, "TTF_OpenFont Error: %s\n", TTF_GetError());
-    fprintf(stderr, "Tried: %s and %s\n", font_paths[0], font_paths[1]);
+    fprintf(stderr, "Tried font paths:\n");
+    for (size_t i = 0; i < sizeof(font_paths) / sizeof(font_paths[0]); i++) {
+        fprintf(stderr, "  - %s\n", font_paths[i]);
+    }
     return NULL;
 }
 

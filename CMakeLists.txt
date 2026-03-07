@@ -4,12 +4,12 @@ project(gorillas C)
 set(CMAKE_C_STANDARD 11)
 set(CMAKE_BUILD_TYPE Debug)
 
-# Find SDL2
-find_package(SDL2 REQUIRED)
-include_directories(${SDL2_INCLUDE_DIRS})
-
-# Find SDL2_ttf
-find_package(SDL2_ttf REQUIRED)
+# Find SDL2/SDL2_ttf via pkg-config (more portable on Linux distros).
+find_package(PkgConfig REQUIRED)
+pkg_check_modules(SDL2 REQUIRED sdl2)
+pkg_check_modules(SDL2_TTF REQUIRED SDL2_ttf)
+include_directories(${SDL2_INCLUDE_DIRS} ${SDL2_TTF_INCLUDE_DIRS})
+link_directories(${SDL2_LIBRARY_DIRS} ${SDL2_TTF_LIBRARY_DIRS})
 
 # Python is used on macOS to generate embedded MP3 C source.
 if(APPLE)
@@ -52,6 +52,6 @@ endif()
 target_link_libraries(
     gorillas
     ${SDL2_LIBRARIES}
-    SDL2_ttf::SDL2_ttf
+    ${SDL2_TTF_LIBRARIES}
     m
 )
