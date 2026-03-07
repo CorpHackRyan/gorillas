@@ -101,8 +101,10 @@ void physics_launch_projectile(GameState *game, int player_index) {
     game->projectile.y = player->y - 24.0f;
     game->projectile.vx = cosf(angle_rad) * player->power * direction;
     game->projectile.vy = -sinf(angle_rad) * player->power;
+    game->projectile.flight_t = 0.0f;
     game->projectile.owner_index = player_index;
     game->projectile.ignore_owner_collision = 1;
+    game->projectile.spin_frame = 0;
     game->sun_shocked = 0;
     sound_play_throw();
 }
@@ -117,6 +119,10 @@ void physics_step_projectile(GameState *game, float dt_seconds) {
     if (!game->projectile.active) {
         return;
     }
+
+    /* Original BAS rotates with rot = (t * 10) MOD 4. */
+    game->projectile.spin_frame = ((int)(game->projectile.flight_t * 10.0f)) & 3;
+    game->projectile.flight_t += bas_dt;
 
     game->projectile.vx += wind_accel * bas_dt;
     game->projectile.vy += gravity * bas_dt;

@@ -25,9 +25,11 @@ typedef struct ProjectileState {
     float y;
     float vx;
     float vy;
+    float flight_t;
     int active;
     int owner_index;
     int ignore_owner_collision;
+    int spin_frame;
 } ProjectileState;
 
 typedef struct WindState {

@@ -71,6 +71,51 @@ static const char *GORILLA_SPRITE_RIGHT_UP[GORILLA_H] = {
     "BBBB........BBBB"
 };
 
+enum {
+    BANANA_W = 7,
+    BANANA_H = 7
+};
+
+/* 4 frames: left, up, down, right (matching the BAS rotation order). */
+static const char *BANANA_FRAMES[4][BANANA_H] = {
+    {
+        "...YYY.",
+        "..YYYYY",
+        ".YY....",
+        "YY.....",
+        ".YY....",
+        "..YYYYY",
+        "...YYY."
+    },
+    {
+        "..YYY..",
+        ".Y...Y.",
+        "Y.....Y",
+        "Y.....Y",
+        ".Y...Y.",
+        "..YYY..",
+        "...Y..."
+    },
+    {
+        "...Y...",
+        "..YYY..",
+        ".Y...Y.",
+        "Y.....Y",
+        "Y.....Y",
+        ".Y...Y.",
+        "..YYY.."
+    },
+    {
+        ".YYY...",
+        "YYYYY..",
+        "....YY.",
+        ".....YY",
+        "....YY.",
+        "YYYYY..",
+        ".YYY..."
+    }
+};
+
 static void draw_filled_circle(SDL_Renderer *renderer, int cx, int cy, int radius, SDL_Color color) {
     SDL_SetRenderDrawColor(renderer, color.r, color.g, color.b, color.a);
     for (int y = -radius; y <= radius; y++) {
@@ -125,6 +170,32 @@ static void draw_building_windows(SDL_Renderer *renderer, const BuildingState *b
             col++;
         }
         row++;
+    }
+}
+
+static void draw_banana(SDL_Renderer *renderer, int center_x, int center_y, int frame, int screen_w) {
+    int scale = (screen_w >= 800) ? 2 : 1;
+    int left = center_x - ((BANANA_W * scale) / 2);
+    int top = center_y - ((BANANA_H * scale) / 2);
+    SDL_Color body = {255, 232, 56, 255};
+    SDL_Color tip = {38, 24, 8, 255};
+    const char *const *sprite = BANANA_FRAMES[frame & 3];
+
+    for (int row = 0; row < BANANA_H; row++) {
+        for (int col = 0; col < BANANA_W; col++) {
+            char pixel = sprite[row][col];
+            if (pixel == '.') {
+                continue;
+            }
+            draw_filled_rect(
+                renderer,
+                left + col * scale,
+                top + row * scale,
+                scale,
+                scale,
+                (pixel == 'Y') ? body : tip
+            );
+        }
     }
 }
 
@@ -410,9 +481,21 @@ static void render_name_entry(SDL_Renderer *renderer, const GraphicsContext *gfx
 static void render_game_over(SDL_Renderer *renderer, const GraphicsContext *gfx, const GameState *game) {
     SDL_Color white = {255, 255, 255, 255};
     SDL_Color yellow = {255, 255, 0, 255};
+    SDL_Color cyan = {0, 255, 255, 255};
+    SDL_Color orange = {255, 170, 60, 255};
     char score_line1[96];
     char score_line2[96];
     char winner_line[96];
+    Uint32 ticks = SDL_GetTicks();
+    int dance_count = 6;
+    int base_y = game->screen_h - 95;
+    int spacing = game->screen_w / (dance_count + 1);
+    int banner_w = 0;
+    int banner_h = 0;
+    const char *banner = "WINNER!";
+    int banner_track = 0;
+    int banner_x = 0;
+    int banner_y = 40;
 
     snprintf(score_line1, sizeof(score_line1), "%s: %d", game->player_names[0], game->scores[0]);
     snprintf(score_line2, sizeof(score_line2), "%s: %d", game->player_names[1], game->scores[1]);
@@ -422,12 +505,31 @@ static void render_game_over(SDL_Renderer *renderer, const GraphicsContext *gfx,
         snprintf(winner_line, sizeof(winner_line), "Match complete");
     }
 
-    draw_text_center(renderer, gfx->font, "GAME OVER!", 200, white, game->screen_w);
+    if (TTF_SizeText(gfx->font, banner, &banner_w, &banner_h) == 0) {
+        banner_track = game->screen_w + banner_w + 40;
+        if (banner_track > 0) {
+            banner_x = (int)((ticks / 6U) % (unsigned int)banner_track) - banner_w - 20;
+        }
+        draw_text(renderer, gfx->font, banner, banner_x + 2, banner_y + 2, orange);
+        draw_text(renderer, gfx->font, banner, banner_x, banner_y, yellow);
+    } else {
+        draw_text_center(renderer, gfx->font, banner, banner_y, yellow, game->screen_w);
+    }
+
+    for (int i = 0; i < dance_count; i++) {
+        int x = spacing * (i + 1);
+        int bob = (int)(sinf(((float)ticks * 0.008f) + (float)i) * 7.0f);
+        int arm_flip = ((int)(ticks / 120U) + i) & 1;
+        GorillaArms arms = arm_flip ? GORILLA_LEFT_UP : GORILLA_RIGHT_UP;
+        draw_gorilla(renderer, x, base_y + bob, arms);
+    }
+
+    draw_text_center(renderer, gfx->font, "GAME OVER!", 170, white, game->screen_w);
     draw_text_center(renderer, gfx->font, "Score:", 260, white, game->screen_w);
     draw_text_center(renderer, gfx->font, score_line1, 310, yellow, game->screen_w);
     draw_text_center(renderer, gfx->font, score_line2, 350, yellow, game->screen_w);
-    draw_text_center(renderer, gfx->font, winner_line, 420, white, game->screen_w);
-    draw_text_center(renderer, gfx->font, "Press any key to continue", 520, white, game->screen_w);
+    draw_text_center(renderer, gfx->font, winner_line, 430, cyan, game->screen_w);
+    draw_text_center(renderer, gfx->font, "Press any key to continue", game->screen_h - 40, white, game->screen_w);
 }
 
 static void render_mouse_aim_preview(SDL_Renderer *renderer, const GameState *game, const PlayerState *player, int player_index) {
@@ -516,9 +618,13 @@ static void render_gameplay(SDL_Renderer *renderer, const GraphicsContext *gfx, 
     draw_gorilla(renderer, (int)game->players[1].x, (int)game->players[1].y, p2_arms);
 
     if (game->projectile.active) {
-        SDL_Rect projectile = {(int)game->projectile.x - 3, (int)game->projectile.y - 3, 6, 6};
-        SDL_SetRenderDrawColor(renderer, 255, 255, 0, 255);
-        SDL_RenderFillRect(renderer, &projectile);
+        draw_banana(
+            renderer,
+            (int)game->projectile.x,
+            (int)game->projectile.y,
+            game->projectile.spin_frame,
+            game->screen_w
+        );
     }
 
     if (game->phase == GAME_PHASE_ROUND_END && game->hit_player_index >= 0) {

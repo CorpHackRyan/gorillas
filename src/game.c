@@ -81,8 +81,10 @@ static void setup_round(GameState *game) {
     game->projectile.y = 0.0f;
     game->projectile.vx = 0.0f;
     game->projectile.vy = 0.0f;
+    game->projectile.flight_t = 0.0f;
     game->projectile.owner_index = -1;
     game->projectile.ignore_owner_collision = 0;
+    game->projectile.spin_frame = 0;
 
     for (int i = 0; i < MAX_CRATERS; i++) {
         game->craters[i].active = 0;
